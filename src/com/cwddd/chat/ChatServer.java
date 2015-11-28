@@ -1,20 +1,24 @@
 package com.cwddd.chat;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.EOFException;
 import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
 
 public class ChatServer {
+	private List<Client> clients = new ArrayList<Client>();
 
 	public static void main(String[] args) {
 		new ChatServer().start();
 	}
 
 	private void start() {
-		DataInputStream dis = null;
 		ServerSocket ss = null;
 		boolean bStarted = false;
 		try {
@@ -31,6 +35,7 @@ public class ChatServer {
 			while (bStarted) {
 				Socket socket = ss.accept();
 				Client client = new Client(socket);
+				clients.add(client);
 				System.out.println("a client connected!");
 				new Thread(client).start();
 			}
@@ -52,6 +57,7 @@ public class ChatServer {
 	class Client implements Runnable {
 		private Socket s;
 		private DataInputStream dis;
+		private DataOutputStream dos;
 		private boolean bConnected = false;
 
 		public Client(Socket s) {
@@ -59,6 +65,16 @@ public class ChatServer {
 			bConnected = true;
 			try {
 				this.dis = new DataInputStream(s.getInputStream());
+				this.dos = new DataOutputStream(s.getOutputStream());
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+
+		public void send(String str) {
+			try {
+				dos.writeUTF(str);
+				dos.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -66,24 +82,33 @@ public class ChatServer {
 
 		@Override
 		public void run() {
-			while (bConnected) {
-				try {
+			try {
+				while (bConnected) {
 					String string = dis.readUTF();
 					System.out.println(string);
-				} catch (EOFException e) {
-					System.out.println("Client closed");
+					for (int i = 0; i < clients.size(); i++) {
+						Client client = clients.get(i);
+						client.send(string);
+					}
+				}
+			} catch (EOFException e) {
+				System.out.println("Client closed0");
+			} catch (IOException e) {
+				System.out.println("Client closed1");
+			} catch (Exception e) {
+				System.out.println("Client closed2");
+				e.printStackTrace();
+			} finally {
+				bConnected = false;
+				try {
+					if (dis != null)
+						dis.close();
+					if (dos != null)
+						dos.close();
+					if (s != null)
+						s.close();
 				} catch (IOException e) {
 					e.printStackTrace();
-				} finally {
-					bConnected = false;
-					try {
-						if (dis != null)
-							dis.close();
-						if (s != null)
-							s.close();
-					} catch (IOException e) {
-						e.printStackTrace();
-					}
 				}
 			}
 		}

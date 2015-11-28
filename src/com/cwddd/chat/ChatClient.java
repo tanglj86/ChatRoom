@@ -20,7 +20,10 @@ public class ChatClient extends Frame {
 	private Socket s;
 	private DataInputStream dis;
 	private DataOutputStream dos;
-
+	private boolean bConnected;
+	
+	Thread thread = new Thread(new ReceivThread());
+	
 	public static void main(String[] args) {
 		new ChatClient().LauchFrame();
 
@@ -41,21 +44,30 @@ public class ChatClient extends Frame {
 			@Override
 			public void windowClosing(WindowEvent e) {
 				System.exit(0);
-				try {
-					s.close();
-				} catch (IOException e1) {
-					e1.printStackTrace();
-				}
+				disconnect();
 			}
-
 		});
 		textField.addActionListener(new MyTFActionListener());
 		connect();
+		thread.start();
+		
+	}
+
+	private void disconnect() {
+		try {
+			bConnected = false;
+			dis.close();
+			dos.close();
+			s.close();
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
 	}
 
 	private void connect() {
 		try {
 			s = new Socket("127.0.0.1", 8888);
+			bConnected = true;
 			dis = new DataInputStream(s.getInputStream());
 			dos = new DataOutputStream(s.getOutputStream());
 		} catch (IOException e) {
@@ -71,6 +83,7 @@ public class ChatClient extends Frame {
 			// textArea.setText(text);
 			try {
 				dos.writeUTF(text);
+				dos.flush();
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
@@ -79,4 +92,19 @@ public class ChatClient extends Frame {
 
 	}
 
+	private class ReceivThread implements Runnable {
+
+		@Override
+		public void run() {
+			while (bConnected) {
+				try {
+					String string = dis.readUTF();
+					textArea.setText(textArea.getText() + string + "\n");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+	}
 }
