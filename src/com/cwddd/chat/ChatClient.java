@@ -21,9 +21,9 @@ public class ChatClient extends Frame {
 	private DataInputStream dis;
 	private DataOutputStream dos;
 	private boolean bConnected;
-	
+
 	Thread thread = new Thread(new ReceivThread());
-	
+
 	public static void main(String[] args) {
 		new ChatClient().LauchFrame();
 
@@ -50,14 +50,16 @@ public class ChatClient extends Frame {
 		textField.addActionListener(new MyTFActionListener());
 		connect();
 		thread.start();
-		
+
 	}
 
 	private void disconnect() {
 		try {
 			bConnected = false;
-			dis.close();
-			dos.close();
+			if (dis != null)
+				dis.close();
+			if (dos != null)
+				dos.close();
 			s.close();
 		} catch (IOException e1) {
 			e1.printStackTrace();
@@ -96,13 +98,15 @@ public class ChatClient extends Frame {
 
 		@Override
 		public void run() {
-			while (bConnected) {
-				try {
+			try {
+				while (bConnected) {
 					String string = dis.readUTF();
 					textArea.setText(textArea.getText() + string + "\n");
-				} catch (IOException e) {
-					e.printStackTrace();
 				}
+			} catch (IOException e) {
+				// e.printStackTrace();
+				System.out.println("server disconnect");
+				disconnect();
 			}
 		}
 

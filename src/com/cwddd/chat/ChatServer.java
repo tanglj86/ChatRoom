@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.net.BindException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -76,18 +77,19 @@ public class ChatServer {
 				dos.writeUTF(str);
 				dos.flush();
 			} catch (IOException e) {
-				e.printStackTrace();
+				clients.remove(this);
 			}
 		}
 
 		@Override
 		public void run() {
+			Client client = null;
 			try {
 				while (bConnected) {
 					String string = dis.readUTF();
 					System.out.println(string);
 					for (int i = 0; i < clients.size(); i++) {
-						Client client = clients.get(i);
+						client = clients.get(i);
 						client.send(string);
 					}
 				}
@@ -110,6 +112,10 @@ public class ChatServer {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
+				// if (client != null) {
+				// clients.remove(client);
+				// client = null;
+				// }
 			}
 		}
 
